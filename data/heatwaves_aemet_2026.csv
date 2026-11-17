@@ -1,0 +1,5 @@
+"wave","start","end","n_days","n_provinces","status","source"
+1,"2026-06-20","2026-06-27",8,42,"final","https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026"
+2,"2026-07-02","2026-07-24",23,37,"final","https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026"
+3,"2026-07-28","2026-08-20",24,32,"final","https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026"
+4,"2026-09-02","2026-09-07",6,16,"provisional","https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026"
