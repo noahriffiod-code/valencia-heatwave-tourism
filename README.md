@@ -39,9 +39,34 @@ Monte Carlo median 40.4 million EUR (95% interval 19.3-69.0).
 Waves 2 and 3 share July; the channel 2 loss is not linear in the TCI, so
 the sum over waves (40.4 million) differs slightly from the joint figure.
 
+## Labour productivity
+
+`scripts/05_labour_productivity.R` estimates the direct cost of the heat-induced
+loss of work capacity for outdoor work in the city of Valencia, following
+Orlov et al. (2020) on hourly ERA5 data: WBGT in the shade (Lemke and
+Kjellstrom 2012) and in the sun (Liljegren et al. 2008, R package HeatStressR),
+HOTHAPS work capacity function, and hours lost valued at the INE labour cost.
+Five sectors are covered (construction, water and waste, warehousing, postal
+and courier, buildings and landscape), with Social Security affiliations in the
+city at 31 December 2024 (Ajuntament de Valencia 2025). The part attributable
+to climate change uses the same counterfactual (Barnes et al. 2026). There is
+no attributable warming for September, so it is not computed for wave 4.
+
+This script needs the R package HeatStressR (version 3.0.0 or later):
+
+```r
+install.packages("HeatStressR")
+source("scripts/05_labour_productivity.R")
+```
+
+It reads `era5_valencia_hourly_2026-06-01_2026-09-30.csv`,
+`delta_barnes_2026_valencia.csv` and `heatwaves_aemet_2026.csv` from `data/`.
+Labour costs, employment and work intensities are entered in the script with
+their source. Results are written to `output/labour_productivity_results.csv`.
+
 ## Running the code
 
-Requirements: R (tested with 4.3.3), base R only. Open
+Requirements: R (tested with 4.3.3), base R only for the tourism scripts. Open
 `valencia_heatwave_tourism.Rproj` (or set the working directory to the
 repository root) and run
 
@@ -63,6 +88,7 @@ scripts/01_channel1_spending.R
 scripts/02_channel2_tci.R
 scripts/03_uncertainty.R
 scripts/04_did_length_of_stay.R
+scripts/05_labour_productivity.R  labour productivity (needs HeatStressR)
 data/                             inputs (see below)
 output/                           results (created by the scripts)
 ```
@@ -103,6 +129,15 @@ hotel shares of nights and daily spending (Turisme Comunitat Valenciana,
   changed.
 - **Barnes et al. (2026)**: monthly values derived from the authors' data
   and code (doi:10.5281/zenodo.22228327, CC BY 4.0).
+- **Labour productivity inputs entered in the script**: employment from the
+  Ajuntament de Valencia statistical yearbook (Social Security affiliations,
+  source Ministerio de Trabajo y Economia Social); labour costs from the INE
+  ETCL (CC BY 4.0, as above); MET values from the 2024 Adult Compendium of
+  Physical Activities (Herrmann et al. 2024) and Tudor-Locke et al. (2011),
+  cited, not reproduced.
+- **HeatStressR** (Zheng, with code from the HeatStress package of
+  A. Casanueva) is GPL-3. It is called as an R dependency and is not
+  distributed with this repository.
 
 ## Main assumptions
 
@@ -162,17 +197,45 @@ Gasparrini, A., Leone, M. (2014). Attributable risk from distributed lag
 models. *BMC Medical Research Methodology*, 14, 55.
 https://doi.org/10.1186/1471-2288-14-55
 
+Ajuntament de Valencia (2025). Anuario estadistico 2025, chapter 7, file
+070401_AfiliacionSS.xlsx (Social Security affiliations at 31 December 2024).
+https://www.valencia.es/val/estadistica/anuari-estadistica?capitulo=7
+
 Hersbach, H., Bell, B., Berrisford, P., et al. (2020). The ERA5 global
 reanalysis. *Quarterly Journal of the Royal Meteorological Society*,
 146(730), 1999-2049. https://doi.org/10.1002/qj.3803
+
+Herrmann, S. D., Willis, E. A., Ainsworth, B. E., et al. (2024). 2024 Adult
+Compendium of Physical Activities: a third update of the energy costs of human
+activities. *Journal of Sport and Health Science*, 13(1), 6-12.
+https://doi.org/10.1016/j.jshs.2023.10.010
 
 Heymann, D. C. (2024). The impact of climate change on tourism in Spain:
 analysis and outlook. CaixaBank Research, 31 January 2024.
 https://www.caixabankresearch.com/en/sector-analysis/tourism/impact-climate-change-tourism-spain-analysis-and-outlook
 
+INE (2026). Encuesta Trimestral de Coste Laboral, table 6061 and press
+release for the second quarter of 2026. Instituto Nacional de Estadistica.
+https://www.ine.es/jaxiT3/files/t/es/csv_bdsc/6061.csv ;
+https://www.ine.es/dyngs/Prensa/ETCL2T26.pdf
+
 INE (2026). Encuesta de Ocupacion Hotelera, table 2078: Viajeros y
 pernoctaciones por puntos turisticos. Instituto Nacional de Estadistica.
 https://www.ine.es/jaxiT3/Tabla.htm?t=2078
+
+Kjellstrom, T., Freyberg, C., Lemke, B., Otto, M., Briggs, D. (2018).
+Estimating population heat exposure and impacts on working people in
+conjunction with climate change. *International Journal of Biometeorology*,
+62(3), 291-306. https://doi.org/10.1007/s00484-017-1407-0
+
+Lemke, B., Kjellstrom, T. (2012). Calculating workplace WBGT from
+meteorological data: a tool for climate change assessment. *Industrial
+Health*, 50(4), 267-278.
+
+Liljegren, J. C., Carhart, R. A., Lawday, P., Tschopp, S., Sharp, R. (2008).
+Modeling the wet bulb globe temperature using standard meteorological
+measurements. *Journal of Occupational and Environmental Hygiene*, 5(10),
+645-655. https://doi.org/10.1080/15459620802310770
 
 Masterton, J. M., Richardson, F. A. (1979). *Humidex: a method of
 quantifying human discomfort due to excessive heat and humidity*. CLI 1-79,
@@ -181,9 +244,23 @@ Environment Canada, Atmospheric Environment Service, Downsview, Ontario.
 Mieczkowski, Z. (1985). The tourism climatic index: a method of evaluating
 world climates for tourism. *Canadian Geographer*, 29(3), 220-233.
 
+Orlov, A., Sillmann, J., Aunan, K., Kjellstrom, T., Aaheim, A. (2020).
+Economic costs of heat-induced reductions in worker productivity due to
+global warming. *Global Environmental Change*, 63, 102087.
+https://doi.org/10.1016/j.gloenvcha.2020.102087
+
+Tudor-Locke, C., Ainsworth, B. E., Washington, T. L., Troiano, R. (2011).
+Assigning metabolic equivalent values to the 2002 census occupational
+classification system. *Journal of Physical Activity and Health*, 8(4),
+581-586. https://doi.org/10.1123/jpah.8.4.581
+
 Turisme Comunitat Valenciana (no date). *Evolucion de la actividad turistica,
 provincia de Valencia 2024*.
 https://www.turisme.gva.es/tcv/tcv2024/4-Valencia_2024c.pdf
+
+Zheng, Y. (2026). HeatStressR: calculate heat stress indices. R package
+version 3.0.0 (fork of HeatStress by A. Casanueva). CRAN.
+https://github.com/cran/HeatStressR
 
 Zippenfenig, P. (2024). Open-Meteo.com Weather API (v1.4.0). Zenodo.
 https://doi.org/10.5281/zenodo.14582479
