@@ -20,7 +20,9 @@ Two channels are computed:
    cover is the mean of the hourly ERA5 values from 09:00 to 21:00 local
    time.
 
-`scripts/04_did_length_of_stay.R` is a descriptive check on observed hotel
+`scripts/03_total.R` adds the two channels and computes the bounds and
+sensitivities reported in the paper. `scripts/04_did_length_of_stay.R` is a
+descriptive check on observed hotel
 data: change in travellers, length of stay and nights in Valencia between
 July 2026 and July 2022-2025, relative to 11 northern cities.
 
@@ -37,13 +39,16 @@ July 2026 and July 2022-2025, relative to 11 northern cities.
 The figure reported in the article is the sum over waves, 41.1 million EUR.
 Low / high bound of the attributable warming (sum over waves): 19.3 / 70.3
 million EUR. With the dew point held fixed instead of relative humidity:
-17.0 million EUR. Waves 2 and 3 share July; the channel 2 loss is not
+17.0 million EUR. With the aggregate spending coefficient of 0.12%, channel 1
+is 1.03 million EUR instead of 1.11. All these values are printed by
+`scripts/03_total.R`; Table 9 of the article is printed by
+`scripts/02_channel2_tci.R`. Waves 2 and 3 share July; the channel 2 loss is not
 linear in the TCI, so the sum over waves differs slightly from the joint
 figure.
 
 ## Running the code
 
-Requirements: R (tested with 4.3.3), base R only. Open
+Requirements: R, base packages only (results above obtained with R 4.4.3). Open
 `valencia_heatwave_tourism.Rproj` (or set the working directory to the
 repository root) and run
 
@@ -57,12 +62,13 @@ Results are written to `output/`. The scripts read only the files in
 ## Repository structure
 
 ```
-run_all.R                         runs scripts 00, 01, 02 and 04
+run_all.R                         runs scripts 00 to 04
 R/parameters.R                    parameters and sources
 R/functions.R                     weather, TCI, counterfactual, channels
 scripts/00_prepare_ine_monthly.R  INE table 2078 -> monthly hotel nights
 scripts/01_channel1_spending.R
 scripts/02_channel2_tci.R
+scripts/03_total.R                channels 1 + 2, bounds and sensitivities
 scripts/04_did_length_of_stay.R
 data/                             inputs (see below)
 output/                           results (created by the scripts)
@@ -109,7 +115,7 @@ hotel shares of nights and daily spending (Turisme Comunitat Valenciana,
 
 - Attributable warming applied to heatwave days only; other days unchanged.
 - Relative humidity held fixed in the counterfactual (dew point fixed as a
-  variant, which roughly halves channel 2).
+  variant, which lowers channel 2 from 39.9 to 15.9 million EUR).
 - Monthly TCI taken as the mean of daily TCI.
 - Monthly nights spread evenly over the days of the month.
 - Hotel shares of the province of Valencia (2024) used to scale INE hotel

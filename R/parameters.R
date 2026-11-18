@@ -45,8 +45,6 @@ params$file_era5 <- data_path("era5_valencia_hourly_2026-06-01_2026-09-30.csv")
 params$file_aemet <- data_path("aemet_8416_daily_2026-06-01_2026-09-30.csv")
 params$file_aemet_july_ref <- data_path("aemet_8416_july_2022_2025.csv")
 
-# Weather source for the TCI: ERA5, as in Barrutiabengoa et al. (2024).
-params$tci_source <- "era5"
 # Cloud cover: mean of the hourly values from 09:00 to 21:00 local time
 # (daytime conditions).
 params$cloud_hours <- c(9, 21)
@@ -58,7 +56,7 @@ params$cloud_hours <- c(9, 21)
 # delta is the warming of mean daily temperature attributable to climate
 # change in Valencia for the calendar month, from Barnes et al. (2026),
 # Nature Health, doi:10.1038/s44360-026-00209-8. Data and code:
-# doi:10.5281/zenodo.22228327, city ES003C, row "Unweighted".
+# doi:10.5281/zenodo.22228326, city ES003C, row "Unweighted".
 #   delta(month) = beta(month) x W_2026,  W_2026 = 1.319 C
 # Barnes et al. provide June, July and August only.
 # Days outside the retained waves are left unchanged.
@@ -120,13 +118,14 @@ spend_per_night <- function(share_abroad)
 # Channel 1. Heymann (2024), CaixaBank Research, "The impact of climate
 # change on tourism in Spain: analysis and outlook":
 # -0.12% aggregate tourist spending per degree, -0.13% in supermarkets.
-# The supermarket figure is used; no standard error is reported.
+# The supermarket figure is used; no standard error is reported. The
+# aggregate figure is reported as a sensitivity (script 01).
 params$spend_coef     <- 0.13
+params$spend_coef_aggregate <- 0.12
 
 # Channel 2. Barrutiabengoa et al. (2024), BBVA Research Working Paper 24/11,
 # "Climate change scenarios and the evolution of Spanish tourism", Table 2: elasticity of
 # monthly hotel nights to the TCI, "Mediterranean and Islands" group
-# (which includes the province of Valencia, Figure 4).
-params$tci_elasticity      <- 0.501
-params$tci_elasticity_tval <- 24.65
+# (which includes the province of Valencia, Figure 4); t = 24.65.
+params$tci_elasticity <- 0.501
 

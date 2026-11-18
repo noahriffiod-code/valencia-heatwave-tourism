@@ -15,22 +15,19 @@ wave_of_day <- function(dates, waves = params$waves_used) {
 }
 
 # Attributable warming (C) for the month of each date.
-# scenario: "central", "low" or "high"; z: standard normal draw (Monte Carlo),
-# mapped onto the 95% interval of Barnes et al. read as a normal interval.
-delta_of_day <- function(dates, scenario = "central", z = NULL) {
+# scenario: "central", or "low" / "high" for the bounds of the 95% interval.
+delta_of_day <- function(dates, scenario = "central") {
   d <- params$delta
   i <- match(as.integer(format(dates, "%m")), d$month)
-  if (!is.null(z))
-    return(d$delta[i] + z * (d$delta_high[i] - d$delta_low[i]) / (2 * 1.96))
   col <- c(central = "delta", low = "delta_low", high = "delta_high")[[scenario]]
   d[[col]][i]
 }
 
 # Temperature removed from each date in the counterfactual: delta on
 # heatwave days, zero otherwise.
-temp_shift <- function(dates, scenario = "central", z = NULL, waves = params$waves_used) {
+temp_shift <- function(dates, scenario = "central", waves = params$waves_used) {
   hw <- !is.na(wave_of_day(dates, waves))
-  ifelse(hw, delta_of_day(dates, scenario, z), 0)
+  ifelse(hw, delta_of_day(dates, scenario), 0)
 }
 
 # ---------------------------------------------------------------------------
@@ -141,8 +138,8 @@ tci_obs_cf <- function(w, shift, humidity = params$cf_humidity) {
 # Channel 1: lower spending by tourists present on heatwave days
 # loss = nights x spending per night x coefficient (% per C) x shift
 # ---------------------------------------------------------------------------
-channel1 <- function(d, shift, coef = params$spend_coef, share_shift = 0)
-  d$nights * spend_per_night(d$share_abroad + share_shift) * coef / 100 * shift
+channel1 <- function(d, shift, coef = params$spend_coef)
+  d$nights * spend_per_night(d$share_abroad) * coef / 100 * shift
 
 # ---------------------------------------------------------------------------
 # Channel 2: fewer tourist nights through the TCI
@@ -151,10 +148,9 @@ channel1 <- function(d, shift, coef = params$spend_coef, share_shift = 0)
 # with the monthly TCI taken as the mean of daily values. Observed nights
 # are the INE-based totals; counterfactual nights are nights_obs / ratio.
 # ---------------------------------------------------------------------------
-channel2 <- function(w, scenario = "central", z = NULL, waves = params$waves_used,
-                     humidity = params$cf_humidity, beta = params$tci_elasticity,
-                     share_shift = 0) {
-  daily <- tci_obs_cf(w, temp_shift(w$date, scenario, z, waves), humidity)
+channel2 <- function(w, scenario = "central", waves = params$waves_used,
+                     humidity = params$cf_humidity, beta = params$tci_elasticity) {
+  daily <- tci_obs_cf(w, temp_shift(w$date, scenario, waves), humidity)
   months <- intersect(params$nights$month, unique(daily$month))
   by_month <- do.call(rbind, lapply(months, function(m) {
     t <- daily[daily$month == m, ]
@@ -163,7 +159,7 @@ channel2 <- function(w, scenario = "central", z = NULL, waves = params$waves_use
     tci_cf  <- mean(t$tci_cf, na.rm = TRUE)
     ratio   <- (tci_obs / tci_cf)^beta
     lost    <- n$total * (1 / ratio - 1)
-    spend   <- spend_per_night(n$share_abroad + share_shift)
+    spend   <- spend_per_night(n$share_abroad)
     data.frame(month = m, shifted_days = sum(t$shift > 0), tci_obs = tci_obs, tci_cf = tci_cf,
                nights = n$total, change_pct = 100 * (ratio - 1), nights_lost = lost,
                spend_per_night = spend, loss_eur = lost * spend)
