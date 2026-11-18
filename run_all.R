@@ -5,5 +5,4 @@
 source("scripts/00_prepare_ine_monthly.R")
 source("scripts/01_channel1_spending.R")
 source("scripts/02_channel2_tci.R")
-source("scripts/03_uncertainty.R")
 source("scripts/04_did_length_of_stay.R")

@@ -16,17 +16,14 @@ by_scenario <- sapply(params$delta_scenarios, function(s) channel2(weather, scen
 by_wave <- data.frame(wave = params$waves_used,
                       loss_eur = sapply(params$waves_used, function(v) channel2(weather, waves = v)$loss_eur))
 
-# Robustness: dew point held fixed; ERA5 against AEMET station 8416 over
-# June-July (AEMET sunshine duration is missing from 1 August).
-check_months <- intersect(c("2026-06", "2026-07"), params$months)
-variants <- list(
-  "ERA5, RH fixed (main)"        = res,
-  "ERA5, dew point fixed"        = channel2(weather, humidity = "td_fixed"),
-  "ERA5, June-July"              = channel2(weather[weather$month %in% check_months, ]),
-  "AEMET 8416, June-July"        = channel2(read_tci_weather("aemet", check_months)))
-variants <- data.frame(variant = names(variants),
-                       loss_eur = sapply(variants, `[[`, "loss_eur"),
-                       nights_lost = sapply(variants, `[[`, "nights_lost"), row.names = NULL)
+# Sum over waves for each bound of the attributable warming, and with the
+# dew point held fixed instead of relative humidity (sensitivity).
+by_wave_scenario <- sapply(params$delta_scenarios, function(s)
+  sum(sapply(params$waves_used, function(v) channel2(weather, scenario = s, waves = v)$loss_eur)))
+by_wave_td <- sum(sapply(params$waves_used, function(v)
+  channel2(weather, waves = v, humidity = "td_fixed")$loss_eur))
+variants <- data.frame(variant = c("Sum over waves, RH fixed (main)", "Sum over waves, dew point fixed"),
+                       loss_eur = c(sum(by_wave$loss_eur), by_wave_td))
 
 cat("\nChannel 2: tourist nights (TCI, BBVA elasticity", params$tci_elasticity, ")\n")
 bm <- res$by_month
@@ -35,8 +32,9 @@ print(data.frame(month = bm$month, shifted_days = bm$shifted_days, tci_cf = roun
                  nights_lost = eur(bm$nights_lost), loss_eur = eur(bm$loss_eur)), row.names = FALSE)
 cat("Total, central delta:", eur(res$loss_eur), "EUR (", eur(res$nights_lost), "nights )\n")
 cat("By wave:", paste0("wave ", by_wave$wave, " ", eur(by_wave$loss_eur), collapse = "; "), "EUR\n")
-cat("Delta low / central / high:", paste(eur(by_scenario), collapse = " / "), "EUR\n")
-print(transform(variants, loss_eur = eur(loss_eur), nights_lost = eur(nights_lost)), row.names = FALSE)
+cat("Delta low / central / high, joint:", paste(eur(by_scenario), collapse = " / "), "EUR\n")
+cat("Delta low / central / high, sum over waves:", paste(eur(by_wave_scenario), collapse = " / "), "EUR\n")
+print(transform(variants, loss_eur = eur(loss_eur)), row.names = FALSE)
 
 write.csv(bm, output_path("channel2_by_month.csv"), row.names = FALSE)
 write.csv(by_wave, output_path("channel2_by_wave.csv"), row.names = FALSE)

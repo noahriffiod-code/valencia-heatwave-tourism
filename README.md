@@ -1,6 +1,6 @@
 # Tourism cost of the 2026 heatwaves in Valencia attributable to climate change
 
-Code and data for the tourism section of *[paper title]*, [authors], [journal, year].
+Code and data for the tourism section of *Attributing the economic cost of the summer 2026 heat waves in València to climate change*, N. Riffiod, A.G. Fernández-Garza, D. Ávila-Velásquez, E. Gielen and M. Pulido-Velazquez (2026).
 
 The analysis estimates the loss of tourist spending in the city of Valencia
 during the three official AEMET heatwaves of summer 2026 (20-27 June,
@@ -16,28 +16,30 @@ Two channels are computed:
 2. **Tourist nights** (`scripts/02_channel2_tci.R`): daily Tourism Climatic
    Index (Mieczkowski 1985) in the version of Barrutiabengoa et al. (2024),
    computed from ERA5 (Hersbach et al. 2020), and their monthly elasticity
-   of hotel nights to the TCI of 0.501 (Mediterranean and Islands).
+   of hotel nights to the TCI of 0.501 (Mediterranean and Islands). Cloud
+   cover is the mean of the hourly ERA5 values from 09:00 to 21:00 local
+   time.
 
-`scripts/03_uncertainty.R` combines both channels, reports results by
-heatwave and by bound of the attributable warming, and runs a joint Monte
-Carlo (5,000 draws) following Gasparrini and Leone (2014).
-`scripts/04_did_length_of_stay.R` is a check on hotel length of stay
-(difference-in-differences against 11 northern cities, placebo inference as
-in Abadie et al. 2010).
+`scripts/04_did_length_of_stay.R` is a descriptive check on observed hotel
+data: change in travellers, length of stay and nights in Valencia between
+July 2026 and July 2022-2025, relative to 11 northern cities.
 
 ## Main results (central estimate, EUR)
 
 | Wave | Dates | Spending | Nights | Total |
 |---|---|---:|---:|---:|
-| 1 | 20-27 Jun | 159,412 | 8,022,292 | 8,181,703 |
-| 2 | 2-24 Jul | 444,842 | 16,855,826 | 17,300,668 |
-| 3 | 28 Jul-20 Aug | 506,236 | 14,457,750 | 14,963,986 |
-| All (joint) | | 1,110,490 | 38,941,214 | 40,051,704 |
+| 1 | 20-27 Jun | 159,412 | 8,195,317 | 8,354,728 |
+| 2 | 2-24 Jul | 444,842 | 17,109,769 | 17,554,611 |
+| 3 | 28 Jul-20 Aug | 506,236 | 14,642,558 | 15,148,794 |
+| Sum over waves | | 1,110,490 | 39,947,643 | 41,058,133 |
+| All waves shifted together | | 1,110,490 | 39,541,436 | 40,651,926 |
 
-Low / high bound of the attributable warming: 18.9 / 68.5 million EUR.
-Monte Carlo median 40.4 million EUR (95% interval 19.3-69.0).
-Waves 2 and 3 share July; the channel 2 loss is not linear in the TCI, so
-the sum over waves (40.4 million) differs slightly from the joint figure.
+The figure reported in the article is the sum over waves, 41.1 million EUR.
+Low / high bound of the attributable warming (sum over waves): 19.3 / 70.3
+million EUR. With the dew point held fixed instead of relative humidity:
+17.0 million EUR. Waves 2 and 3 share July; the channel 2 loss is not
+linear in the TCI, so the sum over waves differs slightly from the joint
+figure.
 
 ## Running the code
 
@@ -55,13 +57,12 @@ Results are written to `output/`. The scripts read only the files in
 ## Repository structure
 
 ```
-run_all.R                         runs scripts 00_prepare to 04
+run_all.R                         runs scripts 00, 01, 02 and 04
 R/parameters.R                    parameters and sources
 R/functions.R                     weather, TCI, counterfactual, channels
 scripts/00_prepare_ine_monthly.R  INE table 2078 -> monthly hotel nights
 scripts/01_channel1_spending.R
 scripts/02_channel2_tci.R
-scripts/03_uncertainty.R
 scripts/04_did_length_of_stay.R
 data/                             inputs (see below)
 output/                           results (created by the scripts)
@@ -72,9 +73,9 @@ output/                           results (created by the scripts)
 | File | Content | Source |
 |---|---|---|
 | `heatwaves_aemet_2026.csv` | Dates of the 2026 heatwaves | AEMET, note of 9 Sep 2026, [link](https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026) |
-| `delta_barnes_2026_valencia.csv` | Attributable warming by month, 95% interval | Computed from Barnes et al. (2026), [doi:10.5281/zenodo.22228327](https://doi.org/10.5281/zenodo.22228327), city ES003C |
+| `delta_barnes_2026_valencia.csv` | Attributable warming by month, 95% interval | Computed from Barnes et al. (2026), [doi:10.5281/zenodo.22228326](https://doi.org/10.5281/zenodo.22228326), city ES003C |
 | `era5_valencia_hourly_2026-06-01_2026-09-30.csv` | ERA5 hourly, local time | Open-Meteo archive API (Zippenfenig 2024), `models=era5`, `elevation=nan`, `cell_selection=land`, nearest land cell to the coordinates of station 8416 in the AEMET inventory, retrieved 4 Nov 2026 |
-| `aemet_8416_daily_2026-06-01_2026-09-30.csv` | Daily values, station 8416 Valencia | AEMET OpenData, daily climatological values, retrieved 4 Nov 2026 |
+| `aemet_8416_daily_2026-06-01_2026-09-30.csv` | Daily values, station 8416 Valencia (mean temperature of July 2026 used in script 04) | AEMET OpenData, daily climatological values, retrieved 4 Nov 2026 |
 | `aemet_8416_july_2022_2025.csv` | Daily mean temperature, July 2022-2025, station 8416 | AEMET OpenData |
 | `raw/ine_2078_valencia_2026M06-M09.csv` | Hotel travellers and nights, Valencia | INE, EOH, [table 2078](https://www.ine.es/jaxiT3/Tabla.htm?t=2078) |
 | `ine_eoh_valencia_monthly_2026.csv` | Same, one row per month | `scripts/00_prepare_ine_monthly.R` |
@@ -102,7 +103,7 @@ hotel shares of nights and daily spending (Turisme Comunitat Valenciana,
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); column names
   changed.
 - **Barnes et al. (2026)**: monthly values derived from the authors' data
-  and code (doi:10.5281/zenodo.22228327, CC BY 4.0).
+  and code (doi:10.5281/zenodo.22228326, CC BY 4.0).
 
 ## Main assumptions
 
@@ -114,8 +115,7 @@ hotel shares of nights and daily spending (Turisme Comunitat Valenciana,
 - Hotel shares of the province of Valencia (2024) used to scale INE hotel
   nights to all types of accommodation in the city.
 - Daily spending of 2024 applied to summer 2026.
-- AEMET check only: cloud cover approximated by 1 - sunshine duration / day
-  length (day length from Allen et al. 1998); this proxy is our own choice.
+- Cloud cover averaged over 09:00-21:00 local time (daytime conditions).
 - Dew point from temperature and relative humidity with the Magnus formula
   (Alduchov and Eskridge 1996).
 
@@ -130,11 +130,6 @@ See `CITATION.cff`.
 
 ## References
 
-Abadie, A., Diamond, A., Hainmueller, J. (2010). Synthetic control methods
-for comparative case studies: estimating the effect of California's tobacco
-control program. *Journal of the American Statistical Association*, 105(490),
-493-505. https://doi.org/10.1198/jasa.2009.ap08746
-
 AEMET (2026). Olas de calor 2026. Agencia Estatal de Meteorologia, note of
 9 September 2026. https://www.aemet.es/es/noticias/2026/09/olas_de_calor_2026
 
@@ -142,25 +137,17 @@ Alduchov, O. A., Eskridge, R. E. (1996). Improved Magnus form approximation
 of saturation vapor pressure. *Journal of Applied Meteorology*, 35(4),
 601-609.
 
-Allen, R. G., Pereira, L. S., Raes, D., Smith, M. (1998). *Crop
-evapotranspiration: guidelines for computing crop water requirements*. FAO
-Irrigation and Drainage Paper 56. FAO, Rome.
-
 Barnes, C., Masselot, P., Xi, D., Clarke, B., Rayner, A., Chen, X., Wang, R.,
 Raju, E., Theokritoff, E., Mistry, M., Gasparrini, A., Otto, F.,
 Vicedo-Cabrera, A. M., Konstantinoudis, G. (2026). Heat-related urban
 mortality attributable to human-induced climate change in Europe from 2000
 to 2025. *Nature Health*. https://doi.org/10.1038/s44360-026-00209-8. Data
-and code: https://doi.org/10.5281/zenodo.22228327
+and code: https://doi.org/10.5281/zenodo.22228326
 
 Barrutiabengoa, J. M., Carta, G., Gonzalez, N., Perez, D., Mas, P., Yucel, G.
 (2024). *Climate change scenarios and the evolution of Spanish tourism*.
 BBVA Research Working Paper 24/11.
 https://www.bbvaresearch.com/wp-content/uploads/2024/09/WP-24-11_Climate-change-scenarios-and-the-evolution-of-Spanish-tourism.pdf
-
-Gasparrini, A., Leone, M. (2014). Attributable risk from distributed lag
-models. *BMC Medical Research Methodology*, 14, 55.
-https://doi.org/10.1186/1471-2288-14-55
 
 Hersbach, H., Bell, B., Berrisford, P., et al. (2020). The ERA5 global
 reanalysis. *Quarterly Journal of the Royal Meteorological Society*,

@@ -40,15 +40,16 @@ params$months <- sort(unique(unlist(lapply(
 params$file_era5 <- data_path("era5_valencia_hourly_2026-06-01_2026-09-30.csv")
 
 # AEMET station 8416 "VALENCIA" (city centre, 13 m), daily climatological
-# values. Used as a consistency check on the TCI for June-July (sunshine
-# duration is missing from 1 August) and in the difference-in-differences
-# check (script 04).
+# values. Used for the July temperature anomaly in the hotel-data check
+# (script 04).
 params$file_aemet <- data_path("aemet_8416_daily_2026-06-01_2026-09-30.csv")
 params$file_aemet_july_ref <- data_path("aemet_8416_july_2022_2025.csv")
 
-# Default weather source for the TCI ("era5" or "aemet")
+# Weather source for the TCI: ERA5, as in Barrutiabengoa et al. (2024).
 params$tci_source <- "era5"
-params$latitude   <- 39.47   # Valencia; day length for the AEMET cloud proxy
+# Cloud cover: mean of the hourly values from 09:00 to 21:00 local time
+# (daytime conditions).
+params$cloud_hours <- c(9, 21)
 
 # ---------------------------------------------------------------------------
 # 3. Counterfactual climate
@@ -121,8 +122,6 @@ spend_per_night <- function(share_abroad)
 # -0.12% aggregate tourist spending per degree, -0.13% in supermarkets.
 # The supermarket figure is used; no standard error is reported.
 params$spend_coef     <- 0.13
-params$spend_coef_min <- 0.065   # +/- 50% for the Monte Carlo
-params$spend_coef_max <- 0.195
 
 # Channel 2. Barrutiabengoa et al. (2024), BBVA Research Working Paper 24/11,
 # "Climate change scenarios and the evolution of Spanish tourism", Table 2: elasticity of
@@ -131,9 +130,3 @@ params$spend_coef_max <- 0.195
 params$tci_elasticity      <- 0.501
 params$tci_elasticity_tval <- 24.65
 
-# ---------------------------------------------------------------------------
-# 7. Monte Carlo
-# ---------------------------------------------------------------------------
-params$n_sim  <- 5000
-params$seed   <- 20261021
-params$share_abroad_range <- 0.10   # +/- 10 points around the monthly share

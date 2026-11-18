@@ -60,42 +60,33 @@ dew_point <- function(t, rh) {
 rel_humidity <- function(t, td)
   100 * exp(17.625 * td / (243.04 + td)) / exp(17.625 * t / (243.04 + t))
 
-# Astronomical day length (h), FAO-56 (Allen et al. 1998, eqs. 24, 25, 34)
-day_length <- function(date, lat) {
-  decl <- 0.409 * sin(2 * pi / 365 * (as.POSIXlt(date)$yday + 1) - 1.39)
-  24 / pi * acos(pmin(1, pmax(-1, -tan(lat * pi / 180) * tan(decl))))
-}
-
 # ERA5 hourly values aggregated to local days: 24-h means of temperature,
-# dew point, wind and cloud cover; 24-h sum of precipitation.
+# dew point and wind; 24-h sum of precipitation; cloud cover averaged over
+# the local hours params$cloud_hours (09:00-21:00).
 read_era5_daily <- function(months = params$months) {
   h <- read.csv(params$file_era5, stringsAsFactors = FALSE)
   h <- h[substr(h$local_date, 1, 7) %in% months, ]
   day <- function(x, f) as.numeric(tapply(x, h$local_date, f))
+  dh <- h$local_hour >= params$cloud_hours[1] & h$local_hour <= params$cloud_hours[2]
   out <- data.frame(date  = as.Date(sort(unique(h$local_date))),
                     tmed  = day(h$era5_t2m_C, mean),
                     tdew  = day(h$era5_td2m_C, mean),
                     prec  = day(h$era5_precip_mm, sum),
                     wind  = day(h$era5_wind10m_ms, mean),
-                    cloud = day(h$era5_cloud_pct, mean))
+                    cloud = as.numeric(tapply(h$era5_cloud_pct[dh], h$local_date[dh], mean)))
   out$rh <- rel_humidity(out$tmed, out$tdew)
   out
 }
 
-# AEMET station 8416, daily values. Cloud cover is not reported; it is
-# approximated by 1 - sunshine duration / day length (our own proxy).
+# AEMET station 8416, daily mean temperature (script 04).
 read_aemet_daily <- function(months = params$months) {
   a <- read.csv(params$file_aemet, stringsAsFactors = FALSE, encoding = "UTF-8")
   a <- a[substr(a$date, 1, 7) %in% months, ]
-  out <- data.frame(date = as.Date(a$date), tmed = a$aemet_tmed, prec = a$aemet_prec,
-                    wind = a$aemet_velmedia, rh = a$aemet_hrMedia)
-  out$tdew  <- dew_point(out$tmed, out$rh)
-  out$cloud <- 100 * (1 - pmin(1, a$aemet_sol / day_length(out$date, params$latitude)))
-  out
+  data.frame(date = as.Date(a$date), tmed = a$aemet_tmed)
 }
 
-read_tci_weather <- function(source = params$tci_source, months = params$months) {
-  w <- if (source == "era5") read_era5_daily(months) else read_aemet_daily(months)
+read_tci_weather <- function(months = params$months) {
+  w <- read_era5_daily(months)
   w$wind_kmh <- w$wind * 3.6
   w$month <- format(w$date, "%Y-%m")
   w
