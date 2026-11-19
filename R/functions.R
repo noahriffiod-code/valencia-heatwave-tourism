@@ -15,22 +15,19 @@ wave_of_day <- function(dates, waves = params$waves_used) {
 }
 
 # Attributable warming (C) for the month of each date.
-# scenario: "central", "low" or "high"; z: standard normal draw (Monte Carlo),
-# mapped onto the 95% interval of Barnes et al. read as a normal interval.
-delta_of_day <- function(dates, scenario = "central", z = NULL) {
+# scenario: "central", or "low" / "high" for the bounds of the 95% interval.
+delta_of_day <- function(dates, scenario = "central") {
   d <- params$delta
   i <- match(as.integer(format(dates, "%m")), d$month)
-  if (!is.null(z))
-    return(d$delta[i] + z * (d$delta_high[i] - d$delta_low[i]) / (2 * 1.96))
   col <- c(central = "delta", low = "delta_low", high = "delta_high")[[scenario]]
   d[[col]][i]
 }
 
 # Temperature removed from each date in the counterfactual: delta on
 # heatwave days, zero otherwise.
-temp_shift <- function(dates, scenario = "central", z = NULL, waves = params$waves_used) {
+temp_shift <- function(dates, scenario = "central", waves = params$waves_used) {
   hw <- !is.na(wave_of_day(dates, waves))
-  ifelse(hw, delta_of_day(dates, scenario, z), 0)
+  ifelse(hw, delta_of_day(dates, scenario), 0)
 }
 
 # ---------------------------------------------------------------------------
@@ -60,42 +57,33 @@ dew_point <- function(t, rh) {
 rel_humidity <- function(t, td)
   100 * exp(17.625 * td / (243.04 + td)) / exp(17.625 * t / (243.04 + t))
 
-# Astronomical day length (h), FAO-56 (Allen et al. 1998, eqs. 24, 25, 34)
-day_length <- function(date, lat) {
-  decl <- 0.409 * sin(2 * pi / 365 * (as.POSIXlt(date)$yday + 1) - 1.39)
-  24 / pi * acos(pmin(1, pmax(-1, -tan(lat * pi / 180) * tan(decl))))
-}
-
 # ERA5 hourly values aggregated to local days: 24-h means of temperature,
-# dew point, wind and cloud cover; 24-h sum of precipitation.
+# dew point and wind; 24-h sum of precipitation; cloud cover averaged over
+# the local hours params$cloud_hours (09:00-21:00).
 read_era5_daily <- function(months = params$months) {
   h <- read.csv(params$file_era5, stringsAsFactors = FALSE)
   h <- h[substr(h$local_date, 1, 7) %in% months, ]
   day <- function(x, f) as.numeric(tapply(x, h$local_date, f))
+  dh <- h$local_hour >= params$cloud_hours[1] & h$local_hour <= params$cloud_hours[2]
   out <- data.frame(date  = as.Date(sort(unique(h$local_date))),
                     tmed  = day(h$era5_t2m_C, mean),
                     tdew  = day(h$era5_td2m_C, mean),
                     prec  = day(h$era5_precip_mm, sum),
                     wind  = day(h$era5_wind10m_ms, mean),
-                    cloud = day(h$era5_cloud_pct, mean))
+                    cloud = as.numeric(tapply(h$era5_cloud_pct[dh], h$local_date[dh], mean)))
   out$rh <- rel_humidity(out$tmed, out$tdew)
   out
 }
 
-# AEMET station 8416, daily values. Cloud cover is not reported; it is
-# approximated by 1 - sunshine duration / day length (our own proxy).
+# AEMET station 8416, daily mean temperature (script 04).
 read_aemet_daily <- function(months = params$months) {
   a <- read.csv(params$file_aemet, stringsAsFactors = FALSE, encoding = "UTF-8")
   a <- a[substr(a$date, 1, 7) %in% months, ]
-  out <- data.frame(date = as.Date(a$date), tmed = a$aemet_tmed, prec = a$aemet_prec,
-                    wind = a$aemet_velmedia, rh = a$aemet_hrMedia)
-  out$tdew  <- dew_point(out$tmed, out$rh)
-  out$cloud <- 100 * (1 - pmin(1, a$aemet_sol / day_length(out$date, params$latitude)))
-  out
+  data.frame(date = as.Date(a$date), tmed = a$aemet_tmed)
 }
 
-read_tci_weather <- function(source = params$tci_source, months = params$months) {
-  w <- if (source == "era5") read_era5_daily(months) else read_aemet_daily(months)
+read_tci_weather <- function(months = params$months) {
+  w <- read_era5_daily(months)
   w$wind_kmh <- w$wind * 3.6
   w$month <- format(w$date, "%Y-%m")
   w
@@ -132,6 +120,8 @@ tci <- function(tmed, tdew, cloud, prec, wind_kmh) {
   s_prec  <- (10:0)[pmax(1, findInterval(pmax(prec, 0), TCI_PREC_BOUND))]
   col     <- ifelse(tmed <= 23.9, 1, ifelse(tmed < 32.9, 2, 3))
   s_wind  <- TCI_WIND_SCORE[cbind(pmax(1, findInterval(wind_kmh, TCI_WIND_BOUND)), col)]
+  # Floor of 1 so that the log-log relation of channel 2 is defined; never
+  # reached in summer in Valencia.
   data.frame(humidex = hx, tci = pmax(5 * s_temp + 2 * s_prec + 2 * s_cloud + s_wind, 1))
 }
 
@@ -150,8 +140,8 @@ tci_obs_cf <- function(w, shift, humidity = params$cf_humidity) {
 # Channel 1: lower spending by tourists present on heatwave days
 # loss = nights x spending per night x coefficient (% per C) x shift
 # ---------------------------------------------------------------------------
-channel1 <- function(d, shift, coef = params$spend_coef, share_shift = 0)
-  d$nights * spend_per_night(d$share_abroad + share_shift) * coef / 100 * shift
+channel1 <- function(d, shift, coef = params$spend_coef)
+  d$nights * spend_per_night(d$share_abroad) * coef / 100 * shift
 
 # ---------------------------------------------------------------------------
 # Channel 2: fewer tourist nights through the TCI
@@ -160,10 +150,9 @@ channel1 <- function(d, shift, coef = params$spend_coef, share_shift = 0)
 # with the monthly TCI taken as the mean of daily values. Observed nights
 # are the INE-based totals; counterfactual nights are nights_obs / ratio.
 # ---------------------------------------------------------------------------
-channel2 <- function(w, scenario = "central", z = NULL, waves = params$waves_used,
-                     humidity = params$cf_humidity, beta = params$tci_elasticity,
-                     share_shift = 0) {
-  daily <- tci_obs_cf(w, temp_shift(w$date, scenario, z, waves), humidity)
+channel2 <- function(w, scenario = "central", waves = params$waves_used,
+                     humidity = params$cf_humidity, beta = params$tci_elasticity) {
+  daily <- tci_obs_cf(w, temp_shift(w$date, scenario, waves), humidity)
   months <- intersect(params$nights$month, unique(daily$month))
   by_month <- do.call(rbind, lapply(months, function(m) {
     t <- daily[daily$month == m, ]
@@ -172,7 +161,7 @@ channel2 <- function(w, scenario = "central", z = NULL, waves = params$waves_use
     tci_cf  <- mean(t$tci_cf, na.rm = TRUE)
     ratio   <- (tci_obs / tci_cf)^beta
     lost    <- n$total * (1 / ratio - 1)
-    spend   <- spend_per_night(n$share_abroad + share_shift)
+    spend   <- spend_per_night(n$share_abroad)
     data.frame(month = m, shifted_days = sum(t$shift > 0), tci_obs = tci_obs, tci_cf = tci_cf,
                nights = n$total, change_pct = 100 * (ratio - 1), nights_lost = lost,
                spend_per_night = spend, loss_eur = lost * spend)

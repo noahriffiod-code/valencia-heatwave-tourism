@@ -1,10 +1,13 @@
 cff-version: 1.2.0
-message: "If you use this code, please cite the associated paper."
+message: "If you use this code, please cite it as below."
+type: software
 title: "Tourism cost of the 2026 heatwaves in Valencia attributable to climate change"
+abstract: "Code and data for the tourism section of 'Attributing the economic cost of the summer 2026 heat waves in València to climate change'."
 authors:
   - family-names: Riffiod
     given-names: Noah
-    affiliation: "Universitat Politecnica de Valencia"
+    affiliation: "École nationale des ponts et chaussées (ENPC)"
+repository-code: "https://github.com/noahriffiod-code/valencia-heatwave-tourism"
 version: 1.0.0
-date-released: 2026-11-17
+date-released: 2026-11-19
 license: MIT
